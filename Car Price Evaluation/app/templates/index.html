@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Value Intelligence</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-dark: #0b0f19;
+            --card-bg: rgba(23, 31, 51, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary: #38bdf8;
+            --primary-glow: rgba(56, 189, 248, 0.35);
+            --accent: #818cf8;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --input-bg: rgba(15, 23, 42, 0.85);
+            --success: #34d399;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
+            position: relative;
+            overflow-x: hidden;
+            perspective: 1200px;
+        }
+
+        .background-glow {
+            position: fixed;
+            top: -10%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, var(--primary-glow) 0%, rgba(0,0,0,0) 70%);
+            filter: blur(80px);
+            z-index: -1;
+        }
+
+        /* 3D Container */
+        .scene-container {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.4, 0.2, 0.2, 1);
+        }
+
+        /* Flipping Directions */
+        .scene-container.flip-to-form {
+            transform: rotateY(180deg);
+        }
+
+        .scene-container.flip-to-result {
+            transform: rotateY(360deg);
+        }
+
+        /* Card Scenes Base */
+        .card-scene {
+            width: 100%;
+            backface-visibility: hidden;
+            border-radius: 24px;
+        }
+
+        /* Scene 1: Intro Scene */
+        #intro-scene {
+            min-height: 60vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .intro-content {
+            text-align: center;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 28px;
+        }
+
+        /* Delayed Entry Animation: Top to Bottom for Heading (Delays 1.2s) */
+        .slide-from-top {
+            font-size: 48px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            opacity: 0;
+            transform: translateY(-60px);
+            animation: slideInDown 1s cubic-bezier(0.16, 1, 0.3, 1) forwards 1.2s;
+        }
+
+        /* Delayed Entry Animation: Bottom to Top for Button (Delays 1.4s) */
+        .slide-from-bottom {
+            opacity: 0;
+            transform: translateY(60px);
+            animation: slideInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards 1.4s;
+        }
+
+        @keyframes slideInDown {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .glass-button {
+            background: rgba(30, 41, 59, 0.9);
+            backdrop-filter: blur(12px);
+            border: 2px solid var(--primary);
+            border-radius: 30px;
+            padding: 18px 42px;
+            color: var(--text-main);
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 10px 30px var(--primary-glow);
+            transition: all 0.3s ease;
+        }
+
+        .glass-button:hover {
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 15px 35px var(--primary-glow);
+            background: var(--primary);
+            color: #0b0f19;
+        }
+
+        /* Scene 2: Evaluator Form Scene */
+        #evaluator-scene {
+            display: none;
+            transform: rotateY(180deg);
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        /* Scene 3: Dedicated Result Page */
+        #result-scene {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform: rotateY(0deg);
+            min-height: 60vh;
+        }
+
+        .result-container {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 50px 30px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+        }
+
+        .animated-text-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .word-fade {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--text-muted);
+            opacity: 0;
+            transform: translateY(15px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .word-fade.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .price-highlight {
+            font-size: 54px;
+            font-weight: 800;
+            color: var(--success);
+            text-shadow: 0 0 25px rgba(52, 211, 153, 0.4);
+            margin: 15px 0 35px 0;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .price-highlight.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .guess-btn-wrap {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .guess-btn-wrap.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Confetti Overlay */
+        .confetti-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 999;
+            overflow: hidden;
+        }
+
+        .confetti-piece {
+            position: absolute;
+            width: 10px;
+            height: 14px;
+            top: -20px;
+            opacity: 0.9;
+            animation: confettiFall 3s ease-out forwards;
+        }
+
+        @keyframes confettiFall {
+            0% {
+                transform: translateY(0) rotate(0deg) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(105vh) rotate(720deg) scale(0.5);
+                opacity: 0;
+            }
+        }
+
+        /* Form Layout */
+        .container {
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .badge {
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--primary);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-top: 10px;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .form-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 8px;
+        }
+
+        .full-width { grid-column: span 2; }
+        .sub-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .full-span { grid-column: span 3; }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 14px;
+        }
+
+        label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--input-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            color: var(--text-main);
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            margin-top: 20px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px var(--primary-glow);
+        }
+
+        @media (max-width: 768px) {
+            .slide-from-top { font-size: 36px; }
+            .form-grid, .sub-grid { grid-template-columns: 1fr; }
+            .full-width, .full-span { grid-column: span 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-glow"></div>
+    <div id="confettiContainer" class="confetti-container"></div>
+    
+    <div id="sceneContainer" class="scene-container">
+        
+        <div id="intro-scene" class="card-scene">
+            <div class="intro-content">
+                <h1 class="slide-from-top">Wanna know your car's price?</h1>
+                <div class="slide-from-bottom">
+                    <button type="button" class="glass-button" onclick="goToForm()">
+                        Let's Get Started Bruh
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="evaluator-scene" class="card-scene">
+            <main class="container">
+                <header class="header">
+                    <span class="badge">AI Valuation Engine</span>
+                    <h1>Car Price Predictor</h1>
+                    <p>Enter vehicle specs below for an instant machine-learning price evaluation.</p>
+                </header>
+
+                <form id="carForm" class="glass-card" onsubmit="event.preventDefault(); makePrediction();">
+                    <div class="form-grid">
+                        
+                        <div class="form-section">
+                            <h3>Basic Overview</h3>
+                            
+                            <div class="input-group">
+                                <label for="brand">Brand / Make</label>
+                                <input type="text" id="brand" value="Toyota" required>
+                            </div>
+
+                            <div class="input-group">
+                                <label for="year">Model Year</label>
+                                <input type="number" id="year" value="2021" required>
+                            </div>
+
+                            <div class="input-group">
+                                <label for="body_style">Body Style</label>
+                                <select id="body_style">
+                                    <option value="Sedan" selected>Sedan</option>
+                                    <option value="SUV">SUV</option>
+                                    <option value="Hatchback">Hatchback</option>
+                                    <option value="Coupe">Coupe</option>
+                                    <option value="Convertible">Convertible</option>
+                                    <option value="Wagon">Wagon</option>
+                                    <option value="Pickup">Pickup</option>
+                                </select>
+                            </div>
+
+                            <div class="input-group">
+                                <label for="condition">Vehicle Condition</label>
+                                <select id="condition">
+                                    <option value="Excellent">Excellent</option>
+                                    <option value="Very Good" selected>Very Good</option>
+                                    <option value="Good">Good</option>
+                                    <option value="Fair">Fair</option>
+                                </select>
+                            </div>
+
+                            <div class="input-group">
+                                <label for="mileage">Mileage (mi)</label>
+                                <input type="number" id="mileage" value="35000" required>
+                            </div>
+
+                            <div class="input-group">
+                                <label for="seller_type">Seller Type</label>
+                                <select id="seller_type">
+                                    <option value="Dealer" selected>Dealer</option>
+                                    <option value="Private Seller">Private Seller</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3>Engine & Specs</h3>
+
+                            <div class="input-group">
+                                <label for="engine_size_l">Engine Size (L)</label>
+                                <input type="number" step="0.1" id="engine_size_l" value="2.5" required>
+                            </div>
+
+                            <div class="input-group">
+                                <label for="horsepower">Horsepower (HP)</label>
+                                <input type="number" id="horsepower" value="203" required>
+                            </div>
+
+                            <div class="input-group">
+                                <label for="cylinders">Cylinders</label>
+                                <input type="number" id="cylinders" value="4" required>
+                            </div>
+
+                            <div class="input-group">
+                                <label for="transmission">Transmission</label>
+                                <select id="transmission">
+                                    <option value="Automatic" selected>Automatic</option>
+                                    <option value="Manual">Manual</option>
+                                    <option value="CVT">CVT</option>
+                                    <option value="Dual-Clutch">Dual-Clutch</option>
+                                </select>
+                            </div>
+
+                            <div class="input-group">
+                                <label for="drivetrain">Drivetrain</label>
+                                <select id="drivetrain">
+                                    <option value="FWD" selected>FWD</option>
+                                    <option value="RWD">RWD</option>
+                                    <option value="AWD">AWD</option>
+                                    <option value="4WD">4WD</option>
+                                </select>
+                            </div>
+
+                            <div class="input-group">
+                                <label for="fuel_type">Fuel Type</label>
+                                <select id="fuel_type">
+                                    <option value="Gasoline" selected>Gasoline</option>
+                                    <option value="Hybrid">Hybrid</option>
+                                    <option value="Electric">Electric</option>
+                                    <option value="Diesel">Diesel</option>
+                                    <option value="Plug-in Hybrid">Plug-in Hybrid</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-section full-width">
+                            <h3>History & Capacity</h3>
+                            <div class="sub-grid">
+                                <div class="input-group">
+                                    <label for="num_doors">Doors</label>
+                                    <input type="number" id="num_doors" value="4" required>
+                                </div>
+
+                                <div class="input-group">
+                                    <label for="seating_capacity">Seats</label>
+                                    <input type="number" id="seating_capacity" value="5" required>
+                                </div>
+
+                                <div class="input-group">
+                                    <label for="fuel_economy_mpg">Fuel Economy (MPG)</label>
+                                    <input type="number" step="0.1" id="fuel_economy_mpg" value="32.0" required>
+                                </div>
+
+                                <div class="input-group">
+                                    <label for="num_owners">Owners</label>
+                                    <input type="number" id="num_owners" value="1" required>
+                                </div>
+
+                                <div class="input-group">
+                                    <label for="accidents_reported">Accidents</label>
+                                    <input type="number" id="accidents_reported" value="0" required>
+                                </div>
+
+                                <div class="input-group">
+                                    <label for="service_history">Service History</label>
+                                    <select id="service_history">
+                                        <option value="Excellent" selected>Excellent</option>
+                                        <option value="Good">Good</option>
+                                        <option value="Fair">Fair</option>
+                                        <option value="Poor">Poor</option>
+                                    </select>
+                                </div>
+
+                                <div class="input-group full-span">
+                                    <label for="warranty_months">Warranty Remaining (Months)</label>
+                                    <input type="number" id="warranty_months" value="12" required>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="predictBtn">
+                        <span>Calculate Estimated Value</span>
+                    </button>
+                </form>
+            </main>
+        </div>
+
+        <div id="result-scene" class="card-scene">
+            <div class="result-container">
+                <div class="animated-text-wrap">
+                    <span class="word-fade" id="w1">Estimated</span>
+                    <span class="word-fade" id="w2">Market</span>
+                    <span class="word-fade" id="w3">Value:</span>
+                </div>
+
+                <div id="priceValue" class="price-highlight">$0</div>
+
+                <div id="guessMoreWrap" class="guess-btn-wrap">
+                    <button type="button" class="glass-button" onclick="guessMore()">
+                        Guess More
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function goToForm() {
+            const container = document.getElementById('sceneContainer');
+            const intro = document.getElementById('intro-scene');
+            const evaluator = document.getElementById('evaluator-scene');
+            
+            evaluator.style.display = 'block';
+            container.classList.add('flip-to-form');
+            
+            setTimeout(() => {
+                intro.style.display = 'none';
+                evaluator.style.position = 'relative';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 800);
+        }
+
+        async function makePrediction() {
+            const btn = document.getElementById('predictBtn');
+            btn.disabled = true;
+            btn.innerText = "Calculating...";
+
+            const payload = {
+                brand: document.getElementById('brand').value,
+                year: parseInt(document.getElementById('year').value),
+                mileage: parseInt(document.getElementById('mileage').value),
+                engine_size_l: parseFloat(document.getElementById('engine_size_l').value),
+                cylinders: parseInt(document.getElementById('cylinders').value),
+                horsepower: parseInt(document.getElementById('horsepower').value),
+                transmission: document.getElementById('transmission').value,
+                drivetrain: document.getElementById('drivetrain').value,
+                fuel_type: document.getElementById('fuel_type').value,
+                body_style: document.getElementById('body_style').value,
+                num_doors: parseInt(document.getElementById('num_doors').value),
+                seating_capacity: parseInt(document.getElementById('seating_capacity').value),
+                fuel_economy_mpg: parseFloat(document.getElementById('fuel_economy_mpg').value),
+                num_owners: parseInt(document.getElementById('num_owners').value),
+                accidents_reported: parseInt(document.getElementById('accidents_reported').value),
+                service_history: document.getElementById('service_history').value,
+                condition: document.getElementById('condition').value,
+                warranty_months: parseInt(document.getElementById('warranty_months').value),
+                seller_type: document.getElementById('seller_type').value
+            };
+
+            let formattedPrice = "$0";
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.predicted_price !== undefined) {
+                    formattedPrice = `$${data.predicted_price.toLocaleString()}`;
+                } else {
+                    formattedPrice = data.error || "Error calculating price.";
+                }
+            } catch (error) {
+                formattedPrice = "Backend connection error.";
+            }
+
+            btn.disabled = false;
+            btn.innerText = "Calculate Estimated Value";
+
+            showResultPage(formattedPrice);
+        }
+
+        function showResultPage(priceText) {
+            const container = document.getElementById('sceneContainer');
+            const evaluator = document.getElementById('evaluator-scene');
+            const resultScene = document.getElementById('result-scene');
+            
+            document.getElementById('priceValue').innerText = priceText;
+
+            document.getElementById('w1').classList.remove('visible');
+            document.getElementById('w2').classList.remove('visible');
+            document.getElementById('w3').classList.remove('visible');
+            document.getElementById('priceValue').classList.remove('visible');
+            document.getElementById('guessMoreWrap').classList.remove('visible');
+
+            resultScene.style.display = 'block';
+            container.classList.remove('flip-to-form');
+            container.classList.add('flip-to-result');
+
+            setTimeout(() => {
+                evaluator.style.display = 'none';
+                resultScene.style.position = 'relative';
+
+                setTimeout(() => document.getElementById('w1').classList.add('visible'), 200);
+                setTimeout(() => document.getElementById('w2').classList.add('visible'), 450);
+                setTimeout(() => document.getElementById('w3').classList.add('visible'), 700);
+                
+                // Reveal Price & Trigger Birthday Confetti Burst
+                setTimeout(() => {
+                    document.getElementById('priceValue').classList.add('visible');
+                    launchConfetti();
+                }, 1000);
+                
+                setTimeout(() => document.getElementById('guessMoreWrap').classList.add('visible'), 1400);
+
+            }, 800);
+        }
+
+        function launchConfetti() {
+            const container = document.getElementById('confettiContainer');
+            container.innerHTML = '';
+            
+            const colors = ['#38bdf8', '#818cf8', '#34d399', '#f43f5e', '#fbbf24', '#a855f7', '#ec4899'];
+            const confettiCount = 80;
+
+            for (let i = 0; i < confettiCount; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti-piece';
+                
+                // Random properties
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const left = Math.random() * 100 + 'vw';
+                const delay = Math.random() * 0.5 + 's';
+                const duration = Math.random() * 2 + 2.5 + 's';
+                const size = Math.random() * 8 + 8 + 'px';
+
+                confetti.style.backgroundColor = color;
+                confetti.style.left = left;
+                confetti.style.width = size;
+                confetti.style.height = (parseFloat(size) * 1.4) + 'px';
+                confetti.style.animationDelay = delay;
+                confetti.style.animationDuration = duration;
+
+                container.appendChild(confetti);
+            }
+
+            // Cleanup after animation completes
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 4500);
+        }
+
+        function guessMore() {
+            const container = document.getElementById('sceneContainer');
+            const evaluator = document.getElementById('evaluator-scene');
+            const resultScene = document.getElementById('result-scene');
+
+            evaluator.style.display = 'block';
+            evaluator.style.position = 'absolute';
+            
+            container.classList.remove('flip-to-result');
+            container.classList.add('flip-to-form');
+
+            setTimeout(() => {
+                resultScene.style.display = 'none';
+                evaluator.style.position = 'relative';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 800);
+        }
+    </script>
+</body>
+</html>
